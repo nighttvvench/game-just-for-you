@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Heart Catch Game</title>
+  <style>
+    body {
+      margin: 0;
+      background: linear-gradient(to bottom, #ffe4ec, #ffccd5);
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .game-container {
+      position: relative;
+      background: #fff0f5;
+      border: 4px solid #ff69b4;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 0 25px rgba(255, 105, 180, 0.3);
+    }
+
+    canvas {
+      display: block;
+      background: #fff0f5;
+      border-radius: 10px;
+    }
+
+    #loveMessage {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      background: white;
+      border: 3px solid #ff69b4;
+      padding: 30px;
+      border-radius: 20px;
+      font-size: 1em;
+      color: #c2185b;
+      text-align: center;
+      box-shadow: 0 0 20px pink;
+      width: 90%;
+      max-width: 450px;
+      z-index: 10;
+      transition: transform 0.5s ease;
+      white-space: pre-wrap;
+    }
+
+    #loveMessage.show {
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    button {
+      display: block;
+      margin: 20px auto 0;
+      padding: 12px 35px;
+      font-size: 1.3em;
+      background: linear-gradient(to right, #ff99cc, #ff66b2);
+      border: none;
+      border-radius: 30px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+    }
+
+    #openingScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom, #ffe4ec, #ffccd5);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+      text-align: center;
+    }
+
+    #openingScreen h1 {
+      font-size: 2.5em;
+      color: #d81b60;
+      margin-bottom: 20px;
+    }
+
+    #openingScreen p {
+      font-size: 1.2em;
+      color: #ad1457;
+      margin-bottom: 30px;
+    }
+
+    #startButton {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="game-container">
+  <div id="openingScreen">
+    <h1>Heart Catcher 💘</h1>
+    <p>Catch hearts and unlock poems from our 3-year love story.</p>
+    <button id="startButton">Start Game</button>
+  </div>
+
+  <canvas id="gameCanvas" width="400" height="500"></canvas>
+  <div id="loveMessage"></div>
+  <button id="nextLevelBtn" style="display: none;">Next Level</button>
+</div>
+
+<script>
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+  const startBtn = document.getElementById("startButton");
+  const nextBtn = document.getElementById("nextLevelBtn");
+  const loveMessage = document.getElementById("loveMessage");
+  const openingScreen = document.getElementById("openingScreen");
+
+  let player = { x: 180, y: 450, size: 30, speed: 4, dx: 0 };
+  let hearts = [];
+  let score = 0;
+  let goal = 5;
+  let level = 1;
+  let gameActive = false;
+
+  const poems = [
+  ` The Way You Exist\n\nIn a world of passing strangers,\nYou stood still and smiled at fate.\nI didn't choose you — my soul did,\nAnd it’s never known a better trait.\n\nYou came in soft like morning light,\nWith laughter sweeter than a song.\nHow did the universe conspire\nTo place me where you belong?\n\nI’m lucky, yes, beyond all measure,\nFor even your silence feels like treasure.\nYou are the wish I never knew\nWas already whispering, “Me too.”`,
+
+  ` Like Rain in Summer\n\nYou arrived when skies were quiet,\nNo thunder roared, no signs foretold,\nBut my heart opened up like flowers\nIn the warmth your love unrolled.\n\nI never knew what missing was,\nUntil you filled the spaces in me.\nHow lucky am I, in this wild world,\nThat you saw me and chose to see?\n\nThere’s magic in the way you stay—\nEven when you’re far away.\nYou’re my calm, my storm, my everyday.`,
+
+  ` A Prayer That Answered Itself\n\nI used to ask the stars for something,\nNot knowing exactly what I meant.\nThen you came, no grand arrival—\nJust a smile, heaven-sent.\n\nI’m lucky, not just for your love,\nBut how it taught me to love in return.\nYou made me better just by being—\nYou lit a fire I didn’t have to earn.\n\nSo if ever I doubt my worth,\nI’ll look at you, and I’ll remember—\nYou loved me first.`,
+
+  ` Ordinary Days with You\n\nIt’s not the big things that make me stay,\nIt’s the way you laugh at silly stuff.\nThe way you know I’m not okay\nEven when I say “I’m tough.”\n\nIt’s how your voice calms down my fears,\nEven from a thousand miles apart.\nI’m lucky to have someone like you—\nWho memorized my heart.\n\nI don’t need a perfect life,\nJust a life where you’re in it.\nThat’s more than enough.`,
+
+  ` The Quiet Miracle\n\nYou didn’t come with fireworks,\nJust a steady, loving spark.\nBut that was all I ever needed—\nTo light up all the dark.\n\nYou never asked me to be perfect,\nOnly honest, flawed, and true.\nI’m lucky, not just to love you—\nBut to be loved back by you.\n\nSo here’s to the quiet kind of magic—\nThe kind you bring just by being here.\nYou’re my everyday miracle, my dear.`,
+
+  ` Still Yours, Always\n\nThree years, and still I reach for you,\nEven if it’s just through a screen.\nYour love has made the distance\nFeel softer than it’s ever been.\n\nI trace your voice in late-night calls,\nAnd fall asleep to your name.\nWhat we have, my love,\nCould never be just a game.\n\nYou’re not just far—you’re everywhere,\nIn my dreams, my thoughts, my air.`,
+
+  ` The Miles Between Us\n\nThey say love fades with time and space,\nBut we’re the proof that’s not always true.\nBecause every goodbye, every delay—\nJust led me back to you.\n\nWe’ve built this bond on patience,\nOn letters, laughs, and tears.\nThree years strong and counting—\nWe’ve outloved all the fears.\n\nYou’re not a maybe. You’re my always.\nNo matter how long the days.`,
+
+  ` When I Miss You Most\n\nI miss you most when it’s quiet,\nWhen the world slows down to breathe.\nThat’s when I feel your absence loudest,\nLike a shadow I can’t leave.\n\nBut I hold on to the love we’ve sown,\nThe memories we replay.\nThis distance is just geography—\nMy heart’s never been away.\n\nThree years, and I still ache for you—\nBut with a hope that always stays.`,
+
+  ` Our Kind of Forever\n\nThey didn’t believe we’d make it.\nSaid we’d drift like clouds at sea.\nBut we kept writing love in silence,\nAnd built forever patiently.\n\nIt wasn’t always easy—God, no.\nBut loving you made sense each time.\nThree years through different time zones—\nStill reading the same love rhyme.\n\nYou and I—we don’t need roads.\nJust a heart that knows.`,
+
+  `The Countdown\n\nEvery day we’re apart,\nIs just one day closer to you.\nI count sunsets with your name,\nUntil I see your sky turn blue.\n\nThree years of faith, of waiting—\nOf promising "soon" with every sigh.\nWe’re almost there, my love,\nWe’ve kissed a thousand times through the sky.\n\nWhen that final mile disappears,\nI'll hold you through every missed year.`,
+
+  // 11–20: Additional love letters
+  ` You Make the Distance Worth It\n\nEvery minute apart is a promise waiting.\nEvery message, a soft echo of your touch.\nEven silence feels sweet, because\nIt leads me to memories of you.\n\nYou make the waiting worth it.\nYou make the missing bearable.\nYou make love feel like coming home.`,
+
+  ` Just Thinking of You\n\nI find myself smiling\nAt the thought of your laugh,\nThe way you say my name,\nThe warmth in your eyes.\n\nYou're not here right now,\nBut you never really leave me.\nYou're in every soft breath,\nEvery hopeful beat.`,
+
+  ` You’re My Best Decision\n\nFalling for you wasn't planned.\nBut staying with you was a choice.\nOne I would make again and again.\n\nEven on hard days,\nYou’re my soft place to land.\nEven across oceans,\nYou’re my home.`,
+
+  ` Our Late Night Love\n\nWhen the world sleeps,\nThat’s when I miss you most.\nIn the dark, I feel closer to you—\nLike our hearts talk in whispers.\n\nEven the stars know\nWe belong to each other.\nOne heart, two places, still one love.`,
+
+  ` If You Only Knew\n\nIf you knew how much\nI replay our calls.\nHow many times I scroll\nJust to see your smile.\n\nYou’d know—\nThis love lives inside me\nLouder than any distance.`,
+
+  ` You Ground Me\n\nWhen I feel like the world spins too fast,\nYou’re my stillness.\nYour voice pulls me back.\nYour love holds me firm.\n\nNo matter how far we are,\nYou remind me: I’m never lost.`,
+
+  ` Our Time Will Come\n\nWe’re writing chapters apart now,\nBut our story isn’t paused.\nIt’s growing stronger, deeper.\nOne day, I’ll read these words beside you.\n\nUntil then—\nWe keep loving in the in-between.`,
+
+  ` Forever Isn’t Scary with You\n\nWith you, I don’t fear forever.\nBecause every day is a gift,\nEvery call is a poem,\nEvery memory—mine to cherish.\n\nYou make forever sound easy.`,
+
+  ` The Love That Waits\n\nSome people give up on long distance.\nBut not us.\nWe wait, we fight, we love anyway.\nBecause this? This is worth it.\n\nYou’re not far.\nYou’re just not here—yet.`,
+
+  ` Until Then\n\nI’ll keep dreaming of our mornings,\nAnd counting stars for our nights.\nWe’ll meet in every heartbeat,\nIn every shared sky.\n\nUntil I can touch you,\nI’ll just keep loving you more.`
+];
+
+const shuffledPoems = [...poems].sort(() => Math.random() - 0.5);
+
+
+  function drawHeart(x, y, size, color) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.bezierCurveTo(x, y - size / 2, x - size, y - size / 2, x - size, y);
+    ctx.bezierCurveTo(x - size, y + size, x, y + size * 1.5, x, y + size * 2);
+    ctx.bezierCurveTo(x, y + size * 1.5, x + size, y + size, x + size, y);
+    ctx.bezierCurveTo(x + size, y - size / 2, x, y - size / 2, x, y);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawPlayer() {
+    drawHeart(player.x, player.y, player.size, "#ff4081");
+  }
+
+  function drawHearts() {
+    hearts.forEach(h => {
+      drawHeart(h.x, h.y, 10, "red");
+    });
+  }
+
+  function moveHearts() {
+    hearts.forEach(h => h.y += 1.5 + level * 0.4);
+    hearts = hearts.filter(h => h.y < canvas.height);
+  }
+
+  function checkCatch() {
+    hearts = hearts.filter(h => {
+      const caught = h.y + 10 > player.y &&
+                     h.y < player.y + player.size * 2 &&
+                     h.x > player.x - player.size &&
+                     h.x < player.x + player.size;
+      if (caught) score++;
+      return !caught;
+    });
+  }
+
+  function update() {
+    if (!gameActive) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawPlayer();
+    drawHearts();
+    moveHearts();
+    checkCatch();
+
+    ctx.fillStyle = "#333";
+    ctx.font = "16px Arial";
+    ctx.fillText(`Score: ${score}/${goal}`, 10, 20);
+    ctx.fillText(`Level: ${level}`, 320, 20);
+
+    player.x += player.dx;
+    if (player.x < player.size) player.x = player.size;
+    if (player.x > canvas.width - player.size) player.x = canvas.width - player.size;
+
+    if (score >= goal) {
+      gameActive = false;
+      const index = (level - 1) % shuffledPoems.length;
+      loveMessage.innerText = shuffledPoems[index];
+      loveMessage.classList.add("show");
+      nextBtn.style.display = 'block';
+      return;
+    }
+
+    requestAnimationFrame(update);
+  }
+
+  function dropHeart() {
+    if (!gameActive) return;
+    hearts.push({ x: Math.random() * (canvas.width - 40) + 20, y: 0 });
+    setTimeout(dropHeart, 1000 - level * 100);
+  }
+
+  function startLevel() {
+    score = 0;
+    hearts = [];
+    goal = 5 + level * 3;
+    loveMessage.classList.remove("show");
+    gameActive = true;
+    nextBtn.style.display = 'none';
+    update();
+    dropHeart();
+  }
+
+  document.addEventListener("keydown", e => {
+    if (!gameActive) return;
+    if (e.key === "ArrowLeft") player.dx = -player.speed;
+    else if (e.key === "ArrowRight") player.dx = player.speed;
+  });
+
+  document.addEventListener("keyup", e => {
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") player.dx = 0;
+  });
+
+  startBtn.onclick = () => {
+    level = 1;
+    openingScreen.style.display = 'none';
+    startLevel();
+  };
+
+  nextBtn.onclick = () => {
+    if (level < 20) {
+      level++;
+      startLevel();
+    } else {
+      loveMessage.innerText = "🎉 You finished all 20 levels! I love you. 💖";
+    }
+  };
+</script>
+
+</body>
+</html>
